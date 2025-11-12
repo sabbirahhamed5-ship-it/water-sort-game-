@@ -1,0 +1,247 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Water Sort Puzzle</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="game-container">
+    <h1>💧 Water Sort Puzzle 3D</h1>
+    <h2 id="level-display">Level 1</h2>
+    <div id="tube-container" class="tube-container"></div>
+
+    <div class="controls">
+      <button id="pause-btn">⏸ Pause</button>
+      <button id="resume-btn" disabled>▶ Resume</button>
+    </div>
+  </div>
+
+  <!-- 🔊 Sound Effects -->
+  <audio id="pour-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_4002dc2443.mp3?filename=water-pour-1-112957.mp3" preload="auto"></audio>
+  <audio id="complete-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_68a786cbf1.mp3?filename=game-success-1-6297.mp3" preload="auto"></audio>
+
+  <script src="script.js"></script>
+</body>
+</html><style>body {
+  margin: 0;
+  background: radial-gradient(circle at top, #00416a, #e4e5e6);
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
+  text-align: center;
+  overflow-x: hidden;
+}
+
+.game-container {
+  padding: 20px;
+}
+
+h1 {
+  text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.5);
+  font-size: 28px;
+}
+
+#level-display {
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 20px;
+  text-shadow: 1px 1px 6px rgba(0,0,0,0.5);
+}
+
+.tube-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 25px;
+  margin-top: 40px;
+}
+
+.tube {
+  width: 80px;
+  height: 230px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  border-radius: 40px 40px 10px 10px;
+  position: relative;
+  box-shadow: inset 0 0 15px rgba(255,255,255,0.4), 0 6px 15px rgba(0,0,0,0.5);
+  overflow: hidden;
+  cursor: pointer;
+  transform: perspective(600px) rotateX(8deg);
+  transition: all 0.3s ease;
+}
+
+.tube:hover {
+  transform: scale(1.08) perspective(600px) rotateX(5deg);
+}
+
+.layer {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 25%;
+  border-top: 1px solid rgba(255,255,255,0.3);
+  transition: all 0.4s ease;
+  opacity: 0.9;
+}
+
+.controls {
+  margin-top: 35px;
+}
+
+button {
+  background: linear-gradient(145deg, #00c6ff, #0072ff);
+  border: none;
+  color: white;
+  font-size: 18px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  margin: 5px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  transition: transform 0.2s ease, background 0.3s;
+}
+
+button:hover {
+  transform: scale(1.1);
+  background: linear-gradient(145deg, #0072ff, #00c6ff);
+}</style><script>const tubeContainer = document.getElementById("tube-container");
+const levelDisplay = document.getElementById("level-display");
+const pourSound = document.getElementById("pour-sound");
+const completeSound = document.getElementById("complete-sound");
+const pauseBtn = document.getElementById("pause-btn");
+const resumeBtn = document.getElementById("resume-btn");
+
+let paused = false;
+let selectedTube = null;
+let level = 1;
+
+const COLORS = [
+  "#FF4B4B", "#FF9A00", "#FFD700", "#00FFB7",
+  "#00BFFF", "#9370DB", "#FF69B4", "#ADFF2F"
+];
+
+// 🧪 Generate new tubes
+function generateTubes(numTubes, colorsPerTube = 4) {
+  tubeContainer.innerHTML = "";
+  const colors = [];
+
+  for (let i = 0; i < numTubes - 2; i++) {
+    for (let j = 0; j < colorsPerTube; j++) {
+      colors.push(COLORS[i % COLORS.length]);
+    }
+  }
+
+  colors.sort(() => Math.random() - 0.5);
+
+  for (let i = 0; i < numTubes; i++) {
+    const tube = document.createElement("div");
+    tube.classList.add("tube");
+    tube.dataset.index = i;
+
+    const tubeColors = colors.splice(0, 4);
+    tube.dataset.colors = JSON.stringify(tubeColors);
+
+    renderTubeLayers(tube, tubeColors);
+    tube.addEventListener("click", () => handleTubeClick(tube));
+    tubeContainer.appendChild(tube);
+  }
+}
+
+// 🖌️ Draw color layers inside tube
+function renderTubeLayers(tube, tubeColors) {
+  tube.innerHTML = "";
+  for (let j = 0; j < tubeColors.length; j++) {
+    const layer = document.createElement("div");
+    layer.classList.add("layer");
+    layer.style.bottom = `${j * 25}%`;
+    layer.style.background = tubeColors[j];
+    tube.appendChild(layer);
+  }
+}
+
+// 🧩 Handle clicks
+function handleTubeClick(tube) {
+  if (paused) return;
+
+  if (!selectedTube) {
+    selectedTube = tube;
+    tube.style.transform = "scale(1.1) perspective(600px) rotateX(5deg)";
+  } else if (tube === selectedTube) {
+    selectedTube.style.transform = "";
+    selectedTube = null;
+  } else {
+    pourColors(selectedTube, tube);
+    selectedTube.style.transform = "";
+    selectedTube = null;
+  }
+}
+
+// 💧 Pouring logic
+function pourColors(fromTube, toTube) {
+  let fromColors = JSON.parse(fromTube.dataset.colors);
+  let toColors = JSON.parse(toTube.dataset.colors);
+
+  if (fromColors.length === 0 || toColors.length >= 4) return;
+
+  const colorToPour = fromColors[fromColors.length - 1];
+  if (toColors.length === 0 || toColors[toColors.length - 1] === colorToPour) {
+    playSound(pourSound);
+    toColors.push(colorToPour);
+    fromColors.pop();
+
+    fromTube.dataset.colors = JSON.stringify(fromColors);
+    toTube.dataset.colors = JSON.stringify(toColors);
+
+    renderTubeLayers(fromTube, fromColors);
+    renderTubeLayers(toTube, toColors);
+
+    checkLevelComplete();
+  }
+}
+
+// 🎵 Sound safe play
+function playSound(sound) {
+  sound.pause();
+  sound.currentTime = 0;
+  sound.play().catch(() => {}); // ব্রাউজারের অটোপ্লে ব্লক এড়ানোর জন্য
+}
+
+// 🏆 Check if level completed
+function checkLevelComplete() {
+  const tubes = document.querySelectorAll(".tube");
+  let complete = true;
+  tubes.forEach((tube) => {
+    const colors = JSON.parse(tube.dataset.colors);
+    if (colors.length > 0 && new Set(colors).size !== 1) complete = false;
+  });
+
+  if (complete) {
+    playSound(completeSound);
+    setTimeout(() => {
+      level++;
+      if (level > 50) {
+        alert("🎉 Congratulations! You completed all 50 levels!");
+      } else {
+        levelDisplay.textContent = `Level ${level}`;
+        generateTubes(6 + (level % 5));
+      }
+    }, 1200);
+  }
+}
+
+// 🎮 Pause / Resume control
+pauseBtn.addEventListener("click", () => {
+  paused = true;
+  pauseBtn.disabled = true;
+  resumeBtn.disabled = false;
+});
+
+resumeBtn.addEventListener("click", () => {
+  paused = false;
+  pauseBtn.disabled = false;
+  resumeBtn.disabled = true;
+});
+
+// 🚀 Start Game
+generateTubes(6);</script>
