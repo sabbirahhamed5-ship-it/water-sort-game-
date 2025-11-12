@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Water Sort Puzzle</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="game-container">
+    <h1>💧 Water Sort Puzzle 3D</h1>
+    <h2 id="level-display">Level 1</h2>
+    <div id="tube-container" class="tube-container"></div>
+
+    <div class="controls">
+      <button id="pause-btn">⏸ Pause</button>
+      <button id="resume-btn" disabled>▶ Resume</button>
+    </div>
+  </div>
+
+  <!-- 🔊 Sound Effects -->
+  <audio id="pour-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_4002dc2443.mp3?filename=water-pour-1-112957.mp3" preload="auto"></audio>
+  <audio id="complete-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_68a786cbf1.mp3?filename=game-success-1-6297.mp3" preload="auto"></audio>
+
+  <script src="script.js"></script>
+</body>
+</html>
